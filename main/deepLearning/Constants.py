@@ -1,2 +1,0 @@
-SIZE = 10 #10x10 grid
-ACTIONS = 4
