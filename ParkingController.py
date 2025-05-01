@@ -1,3 +1,4 @@
+import matplotlib
 from keras.models import Sequential
 from keras.layers import Dense, Flatten, Activation, Input
 from keras.callbacks import TensorBoard
@@ -5,6 +6,7 @@ from keras.optimizers import Adam
 from collections import deque
 from tqdm import tqdm
 import tensorflow as tf
+import math
 
 import os
 import numpy as np
@@ -115,6 +117,52 @@ def train_dqn(env, dqn_model, target_model, replay_buffer, episodes=EPISODES, ga
         if not episode % SAVE_EVERY:
             dqn_model.save(f'models/dqn_model_episode_{episode}.keras')
         print(f"Episode: {episode}, Reward: {total_reward}")
+
+def is_done(current_state: tuple, step: int, goal_state: tuple) -> bool:
+    if step >= 200:
+        return True
+    if current_state == goal_state:
+        return True
+    return False
+
+def reward_function(
+    sensors: list,
+    orientation: int,
+    current_pos: tuple,
+    goal_pos: tuple,
+    steering_angle: int,
+    action: int
+) -> float:
+    reward = 0.0
+
+    min_distance = min(sensors)
+    if min_distance == 0:
+        reward -= 100
+    elif min_distance < 10:
+        reward -= 10
+
+    def euclidean(pos1, pos2):
+        return math.sqrt((pos1[0] - pos2[0]) ** 2 + (pos1[1] - pos2[1]) ** 2)
+
+    distance_to_goal = euclidean(current_pos, goal_pos)
+    reward -= distance_to_goal * 0.1
+
+    if action == 1 and steering_angle > 30:
+        reward += 5
+    elif action == 2 and steering_angle < -30:
+        reward += 5
+    elif action in [1, 2]:
+        reward -= 5
+
+    if action == 3:
+        reward += 1
+    elif action == 4:
+        reward += 1
+
+    if distance_to_goal < 2.0:
+        reward += 100
+
+    return reward
 
 
 #env = BlobEnv()
