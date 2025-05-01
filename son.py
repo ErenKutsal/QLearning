@@ -186,6 +186,7 @@ def reward_function(lidar_data, current_pos, goal_pos, action, imu_data) -> floa
 dqn_model = create_model(INPUT_SHAPE, ACTION_SIZE)
 target_model = create_model(INPUT_SHAPE, ACTION_SIZE)
 target_model.set_weights(dqn_model.get_weights())
+
 #replay buffer
 replay_buffer = ReplayBuffer(REPLAY_MEMORY_SIZE)
 
@@ -199,12 +200,6 @@ for episode in tqdm(range(EPISODES), desc="Training progress", unit="episodes"):
     #while robot.step(timestep) != -1 or not done: bunu değiştim
     while not done:
 
-        t += 1
-
-        gps_data = gps.getValues()
-        accelerometer_data = accelerometer.getValues()
-        imu_data = imu.getRollPitchYaw()
-
         # Lidar verisi seyrek alınabilir
         if t % 16 == 0:
             ranges_left = lidar_left.getRangeImage()
@@ -216,16 +211,37 @@ for episode in tqdm(range(EPISODES), desc="Training progress", unit="episodes"):
                     latest_lidar_data[i] = -1
             t = 1
         t += 1
+
+        action = epsilon_greedy_policy(dqn_model, last_state, epsilon, ACTION_SIZE)
+
+        if action == 1:
+            speed = min(max_speed, speed + speed_step)
+        elif action == 2:
+            speed = max(min_speed, speed - speed_step)
+        elif action == 3:
+            steering = max(min_steering, steering - steering_step)
+        elif action == 4:
+            steering = min(max_steering, steering + steering_step)
+
+        #burada step çağırmamız gerek, doğru mu yaptım bilmiyorum
+        # Driver API ile hız ve direksiyon kontrolü
+        driver.setCruisingSpeed(speed)
+        driver.setSteeringAngle(steering)
+        robot.step(timestep) #bu doğru mu?
+
+        gps_data = gps.getValues()
+        accelerometer_data = accelerometer.getValues()
+        imu_data = imu.getRollPitchYaw()
+
         # current state'e hedef konumu ekledim
         current_state = [
             *gps_data,
             *accelerometer_data,
             *imu_data,
-            *latest_lidar_data
-             * goal_position
+            *latest_lidar_data,
+            *goal_position
         ]
 
-        action = epsilon_greedy_policy(dqn_model, current_state, epsilon, ACTION_SIZE)
         reward = reward_function(current_state, gps_data, goal_position, action, imu_data)
         total_reward += reward
 
@@ -250,9 +266,7 @@ for episode in tqdm(range(EPISODES), desc="Training progress", unit="episodes"):
 
         print(f"Episode: {episode}, Reward: {total_reward}")
 
-    # Driver API ile hız ve direksiyon kontrolü
-    driver.setCruisingSpeed(speed)
-    driver.setSteeringAngle(steering)
+
 
 
 
