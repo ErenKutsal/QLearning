@@ -125,14 +125,7 @@ def is_done(current_state: tuple, step: int, goal_state: tuple) -> bool:
         return True
     return False
 
-def reward_function(
-    sensors: list,
-    orientation: int,
-    current_pos: tuple,
-    goal_pos: tuple,
-    steering_angle: int,
-    action: int
-) -> float:
+def reward_function(sensors : list, current_pos, goal_pos, action, steering_angle) -> float:
     reward = 0.0
 
     min_distance = min(sensors)
