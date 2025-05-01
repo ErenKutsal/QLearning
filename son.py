@@ -2,7 +2,7 @@ from controller import Supervisor, Keyboard
 from vehicle import Driver
 from math import pi, isinf
 from keras.models import Sequential
-from keras.layers import Dense, Flatten, Activation, Input
+from keras.layers import Dense, Input
 from keras.callbacks import TensorBoard
 from keras.optimizers import Adam
 from collections import deque
