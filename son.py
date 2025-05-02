@@ -1,3 +1,9 @@
+#pip install tensorflow
+#pip install keras
+#pip install numpy
+#pip install tqdm
+#pip install urllib3==1.26.15
+
 from controller import Supervisor, Keyboard
 from vehicle import Driver
 from math import pi, isinf
