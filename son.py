@@ -84,6 +84,7 @@ SAVE_EVERY = 1000
 EPISODES = 20_000
 EPSILON_DECAY = 0.99975
 MIN_EPSILON = 0.001
+GET_LIDAR_EVERY = 16
 
 #Başlangıç epsilon değeri
 epsilon = 1
@@ -102,9 +103,6 @@ class ReplayBuffer:
     def size(self):
         return len(self.buffer)
 
-node = robot.getFromDef("TARGET")
-goal_position = node.getField("translation").getSFVec3f()
-
 # Reset fonksiyonu
 def reset_vehicle():
     translation_field.setSFVec3f(initial_position)
@@ -121,7 +119,7 @@ def reset_vehicle():
     return state
 
 #model fonksiyonları
-def create_model(input_shape, action_size=9):
+def create_model(input_shape, action_size):
     model = Sequential([
         Input(shape=input_shape),
         Dense(128, activation='relu'),
@@ -188,6 +186,9 @@ def reward_function(lidar_data, current_pos, goal_pos, action, imu_data) -> floa
 
     return reward
 
+node = robot.getFromDef("TARGET")
+goal_position = node.getField("translation").getSFVec3f()
+
 #models
 dqn_model = create_model(INPUT_SHAPE, ACTION_SIZE)
 target_model = create_model(INPUT_SHAPE, ACTION_SIZE)
@@ -200,14 +201,14 @@ replay_buffer = ReplayBuffer(REPLAY_MEMORY_SIZE)
 for episode in tqdm(range(EPISODES), desc="Training progress", unit="episodes"):
     t = 1
     done = False
-    last_state = reset_vehicle()
+    last_state = reset_vehicle() #reset vehicle state döndürüyor
     total_reward = 0
 
-    #while robot.step(timestep) != -1 or not done: bunu değiştim
+    #while robot.step(timestep) != -1: bunu değiştim
     while not done:
 
         # Lidar verisi seyrek alınabilir
-        if t % 16 == 0:
+        if not t % GET_LIDAR_EVERY:
             ranges_left = lidar_left.getRangeImage()
             ranges_right = lidar_right.getRangeImage()
             ranges_front = lidar_front.getRangeImage()
@@ -252,7 +253,7 @@ for episode in tqdm(range(EPISODES), desc="Training progress", unit="episodes"):
         total_reward += reward
 
         # Store experience in replay buffer
-        replay_buffer.add((current_state, action, reward, current_state, done))
+        replay_buffer.add((last_state, action, reward, current_state, done))
         current_state = last_state
 
         # Sample random minibatch from buffer and update model
